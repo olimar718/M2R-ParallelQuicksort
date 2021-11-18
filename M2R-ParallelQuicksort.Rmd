@@ -1,0 +1,43 @@
+---
+# title: "M2R-ParallelQuicksort"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library(dplyr)
+library(ggplot2)
+require(scales) 
+library(vroom)
+nouveau_resultat= read.csv("data/eduroam-109015.grenet.fr_2021-11-18/measurements_14:44.csv")
+nouveau_resultat= read.csv("data/eduroam-109015.grenet.fr_2021-11-18/measurements_15:28.csv")
+
+base_path = "data/eduroam-109015.grenet.fr_2021-11-18/"
+files = paste(base_path, list.files(base_path), sep = "")
+df <- vroom(files[grep(".csv", x=files)])
+
+
+
+df = df %>% group_by(Type, Size) %>% summarise(Average=mean(Time))
+
+
+p <- ggplot(df, aes(x=Size, y=Average, color=Type))
+p <- p  + geom_point()  + geom_smooth(method = 'lm',formula = y ~I(x*log(x)))
+
+print(p)
+
+#p <- p + scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x))+scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x)) + geom_point() + geom_line()
+#p <- p + stat_function(fun= function(x) x * log10(x))
+
+
+
+```
+
+Avec la dichotomie nous trouvons expérimentalement, sur mon ordinateur, que l'algorithme parallèle deviens plus rapide autour de $5\times 10^5$
+
+
