@@ -4,7 +4,7 @@ PEDANTIC_PARANOID_FREAK =       -g -Wall -Wshadow -Wcast-align \
 				-Waggregate-return -Wmissing-prototypes -Wmissing-declarations \
 				-Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations \
 				-Wmissing-noreturn  \
-				-Wpointer-arith -Wwrite-strings -finline-functions -O0
+				-Wpointer-arith -Wwrite-strings -finline-functions -O3
 
 REASONABLY_CAREFUL_DUDE =	-g -Wall -O2
 NO_PRAYER_FOR_THE_WICKED =	-w -O3

@@ -1,13 +1,47 @@
 ---
-# title: "M2R-ParallelQuicksort"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
+  tite: Performance evaluation of the parallel quicksort
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+# Introduction
+In this report, we compare the performance, in term of *run time*, of the *parallel quicksort*, as implemented by **Arnaud Legrand** ([https://github.com/alegrand/M2R-ParallelQuicksort](https://github.com/alegrand/M2R-ParallelQuicksort)) 
+
+# Experiment setup 
+The tests where conduced on a 2011 MacBook Pro, with an `Intel(R) Core(TM) i7-2635QM CPU @ 2.00GHz` 4 core processor (with intel's hyperthreading technologies this means 8 virtual cores), 8 Gigabytes of ram, and running Fedora Linux 35.
+
+# Fixing problems with the original experiment
+
+## Increasing the robustness of the testing script
+A test script is provided by default on this project :
+
+```{r engine='bash', comment=''}
+cat scripts/run_benchmarking.sh
+```
+
+While this script is fine, it can be enhanced to be made more robust. As suggested by Arnaud Legrand, we will now make the script in Python, and the main modification will be the interleaving of the execution. Aditionnaly, we will collect data in static increment instead of powers of 10 as done originally :
+```{r engine='bash', comment=''}
+cat scripts/run_benchmarking.sh # TODO
+```
+
+## Modifying the `MakeFile` for optimisation
+As pointed out by the professor **Arnaud Legrand** again the executable is compiled with `-O0`. For a performance test, it seems more relevant to use `-O3`, even if `-O0` is the default :
+ 
+ 
+ 
+# Results 
+We have 2 objectives in this experiment:
+-Finding if the parallel version is faster 
+-If yes, finding at what input size it is faster, because of course, the overhead of parallelisation is never worth the cost on very small inputs, so there will be a crosspoint when parallel becomes faster
+
+```{r engine='bash', comment=''}
+cat src/Makefile
+```
 
 ```{r}
 library(dplyr)
@@ -15,12 +49,12 @@ library(ggplot2)
 require(scales) 
 library(vroom)
 nouveau_resultat= read.csv("data/eduroam-109015.grenet.fr_2021-11-18/measurements_14:44.csv")
-nouveau_resultat= read.csv("data/eduroam-109015.grenet.fr_2021-11-18/measurements_15:28.csv")
 
 base_path = "data/eduroam-109015.grenet.fr_2021-11-18/"
 files = paste(base_path, list.files(base_path), sep = "")
 df <- vroom(files[grep(".csv", x=files)])
 
+df = read.csv("data/eduroam-109015.grenet.fr_2021-11-18/measurements_16:50.csv")
 
 
 df = df %>% group_by(Type, Size) %>% summarise(Average=mean(Time))
