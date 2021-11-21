@@ -12,8 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 # Introduction
 In this report, we compare the performance, in term of *run time*, of the *parallel quicksort*, as implemented by **Arnaud Legrand** ([https://github.com/alegrand/M2R-ParallelQuicksort](https://github.com/alegrand/M2R-ParallelQuicksort)) 
 
-# Experiment setup 
-The tests where conduced on a 2011 MacBook Pro, with an `Intel(R) Core(TM) i7-2635QM CPU @ 2.00GHz` 4 core processor (with intel's hyperthreading technologies this means 8 virtual cores), 8 Gigabytes of ram, and running Fedora Linux 35.
+# Experiment machine 
+The tests where conduced on a 2011 MacBook Pro, with an `Intel(R) Core(TM) i7-2635QM CPU @ 2.00GHz` 4 core processor (with intel's hyperthreading technologies this means 8 virtual cores), 8 Gigabytes of ram, and running Fedora Linux 35. We tried to stop all programs while running the experiment.
 
 # Fixing problems with the original experiment
 
@@ -24,54 +24,61 @@ A test script is provided by default on this project :
 cat scripts/run_benchmarking.sh
 ```
 
-While this script is fine, it can be enhanced to be made more robust. As suggested by Arnaud Legrand, we will now make the script in Python, and the main modification will be the interleaving of the execution. Aditionnaly, we will collect data in static increment instead of powers of 10 as done originally :
+While this script is fine, it can be enhanced to be made more robust. As suggested by **Arnaud Legrand**  the main modification will be the interleaving of the execution. Our script now runs :
+- small medium large small medium large small medium large  
+instead of the original 
+- small small small medium medium medium large large large
+
+Additionally, we will collect data in static increment instead of powers of 10 as done originally, to have more data on all size :
 ```{r engine='bash', comment=''}
-cat scripts/run_benchmarking.sh # TODO
+cat scripts/run_benchmarking2.sh 
 ```
 
 ## Modifying the `MakeFile` for optimisation
-As pointed out by the professor **Arnaud Legrand** again the executable is compiled with `-O0`. For a performance test, it seems more relevant to use `-O3`, even if `-O0` is the default :
+As pointed out by the professor **Arnaud Legrand** again the executable is compiled with `-O0`. For a performance test, it seems more relevant to use `-O3`, even if `-O0` is the default. Additionally, we also found that the executable is also compiled with all sort of strange options, that we don't think are necessary as well. Most notably, `-g` is turned on, which is the option for debugging, however for testing the performance it seems more relevant to disable this option. Bellow you can compare our new Makefile vs the oldMakefile.
  
- 
+```{r engine='bash', comment=''}
+echo "NEW MAKEFILE"
+cat src/Makefile
+echo
+echo
+echo "OLD MAKEFILE" 
+cat src/oldMakefile
+```
  
 # Results 
 We have 2 objectives in this experiment:
--Finding if the parallel version is faster 
--If yes, finding at what input size it is faster, because of course, the overhead of parallelisation is never worth the cost on very small inputs, so there will be a crosspoint when parallel becomes faster
 
-```{r engine='bash', comment=''}
-cat src/Makefile
-```
+- Finding if the parallel version is faster 
+
+- If yes, finding at what input size it is faster, because of course, the overhead of parallelisation is never worth the cost on very small inputs, so there will be a crosspoint when parallel becomes faster.
+
+
+We ran one from size $0$ to $10^7$ by increment of $10^6$. We used the perl script, `scripts/csv_quicksort_extractor.pls`, to transform the output to csv in order to be able to import it in `R`.
 
 ```{r}
 library(dplyr)
 library(ggplot2)
 require(scales) 
 library(vroom)
-nouveau_resultat= read.csv("data/eduroam-109015.grenet.fr_2021-11-18/measurements_14:44.csv")
-
-base_path = "data/eduroam-109015.grenet.fr_2021-11-18/"
-files = paste(base_path, list.files(base_path), sep = "")
-df <- vroom(files[grep(".csv", x=files)])
-
-df = read.csv("data/eduroam-109015.grenet.fr_2021-11-18/measurements_16:50.csv")
 
 
-df = df %>% group_by(Type, Size) %>% summarise(Average=mean(Time))
+df = read.csv("data/fedora_2021-11-21/measurements_11:13.csv") # load the data from the CSV
 
 
-p <- ggplot(df, aes(x=Size, y=Average, color=Type))
-p <- p  + geom_point()  + geom_smooth(method = 'lm',formula = y ~I(x*log(x)))
+df = df %>% group_by(Type, Size) %>% summarise(AverageTimeSecond=mean(Time)) # group by type and size and average the multiple runs
+
+
+p <- ggplot(df, aes(x=Size, y=AverageTimeSecond, color=Type))
+p <- p  + geom_point()  + geom_smooth(method = 'lm',formula = y ~I(x*log(x)))# we use geom smooth to get ?? TODO
 
 print(p)
 
-#p <- p + scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x))+scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x)) + geom_point() + geom_line()
-#p <- p + stat_function(fun= function(x) x * log10(x))
-
-
 
 ```
+The weird thing around 0 is because the point for all 3 algorithms are all in the same place.
 
-Avec la dichotomie nous trouvons expérimentalement, sur mon ordinateur, que l'algorithme parallèle deviens plus rapide autour de $5\times 10^5$
+# Conclusion 
 
-
+The parallel version becomes significantly faster than the built-in quicksort at around size $10^6$.
+However it seems that it's slower than the custom sequential version at any size, and it gets slower and slower as the size gets larger.
