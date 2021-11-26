@@ -11,6 +11,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Modifying the shell script in order to acquire metadata about the condition when the experiment was started
 
+## Modyfing the C program in order not to have to deal with perl
+
+
 ## Customizing the linux scheduler settings in order to increase our test priorities
 
 Using niceness
