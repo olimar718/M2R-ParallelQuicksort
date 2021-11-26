@@ -1,0 +1,18 @@
+---
+title: "Going Further with the parallel quicksort"
+author: "Benjamin Cathelineau"
+date: "26/11/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Modifying the shell script in order to acquire metadata about the condition when the experiment was started
+
+## Customizing the linux scheduler settings in order to increase our test priorities
+
+Using niceness
+
+# Using the profiler to figure out in what function most of the code spends its time
