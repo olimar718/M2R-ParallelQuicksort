@@ -2,7 +2,9 @@
 title: "Going Further with the parallel quicksort"
 author: "Benjamin Cathelineau"
 date: "26/11/2021"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -11,11 +13,111 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Modifying the shell script in order to acquire metadata about the condition when the experiment was started
 
+As suggested, I added a lot of metadata, like the number of processes, the cpu and ram usage...
+
+I looked on the internet to find a way to extract most of theses metadata.
+
+```{sh}
+cat scripts/run_benchmarking2.sh
+```
+
 ## Modyfing the C program in order not to have to deal with perl
+Now, the C program directly outputs a csv file, because I don't know Perl and I don't have time to learn it. The printing was changed.
+
+```
+  printf(", %lf ", diff);
+
+```
+
 
 
 ## Customizing the linux scheduler settings in order to increase our test priorities
 
-Using niceness
+At the start of the shell script, I run this command: 
+
+```
+sudo renice --priority -19 --pid $BASHPID > /dev/null
+
+```
+
+This changes the scheduler setting so that our test is favored. See [the man page](https://linux.die.net/man/1/nice). In short a lower niceness is better for the process. A higher niceness is worse.
+
+
+
+
+# Analysing the new data, with confidence intervals
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(Rmisc)
+library(tidyverse)
+
+df = read.csv("data/fedora_2021-12-01/measurements_14:37.csv") # load the data from the CSV
+df
+```
+You can see that now there is a lot more metadata for each entry
+
+## plot and confidence interval on the time
+Here I plot the new data and get essentialy the same result as before. I have to do a wierd transformation because of the way the data is now.
+```{r}
+# https://www.datanovia.com/en/fr/blog/comment-creer-un-ggplot-contenant-plusieurs-lignes/
+df2 <- df %>%
+  dplyr::select(Size, TimeSeq, TimePar,TimeBuiltIn) %>%
+  gather(key = "variable", value = "value", -Size)
+
+p <- ggplot(df2, aes(x=Size, y = value, color = variable)) + geom_point() +geom_smooth()
+
+print(p)
+
+```
+
+
+Then I try to compute the confidence interval on time for each size and for each algorithm. That's a lot of data.
+```{r}
+# Intended for a .95 confidence
+MY_CI <- function(data){
+  data_mean = mean(data)
+  std_dev = sd(data)
+  final_mult= std_dev/length(data)
+  return(c(up= data_mean+(final_mult*2),mean=data_mean,down= data_mean-(final_mult*2)))
+
+}
+
+df %>% group_by(Size) %>% group_map(~ CI(x=.x$TimeSeq,ci=.95))
+df %>% group_by(Size) %>% group_map(~ MY_CI(.x$TimeSeq))
+df %>% group_by(Size) %>% group_map(~ CI(x=.x$TimePar,ci=.95))
+df %>% group_by(Size) %>% group_map(~ MY_CI(.x$TimePar))
+df %>% group_by(Size) %>% group_map(~ CI(x=.x$TimeBuiltIn,ci=.95))
+df %>% group_by(Size) %>% group_map(~ MY_CI(.x$TimeBuiltIn))
+```
+
+
+As you can see, I was not able to reproduce the behavior of the `CI` function from the `Rmisc`package. I found the source code for the `CI` function [here](https://rdrr.io/cran/Rmisc/src/R/CI.R), and I don't understand what they are doing with the `qt` function. Maybe it's related to what *Arnaud Legrand* said about the sample variance being unreliable.
+However I'm pretty close to the same confidence interval nonetheless.
+
+## Exploiting the metadata
+I only had time to look at the temperature.
+```{r}
+df %>% ggplot(aes(x=Size, y=TEMPERATURE)) + geom_point()
+```
+I believe that what we see here is the first runs of the test slowly increasing the temperature, and then it mostly stagnates around 80-90c°.
+
+In general, all the metadata should be able to tell us if something goes wrong.
 
 # Using the profiler to figure out in what function most of the code spends its time
+
+I added a new entry in the makefile to compile with the right option in order to use the `gprof` profiler
+
+```{sh}
+cat src/Makefile
+```
+
+```{sh}
+make -C src/ clean
+make -C src/ profiling
+```
+```{sh}
+cat src/gprof.txt
+```
+We see that most of the time is spent in the `partition` function.
